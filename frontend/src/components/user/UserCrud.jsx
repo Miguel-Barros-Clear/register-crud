@@ -4,12 +4,11 @@ import axios from "axios";
 
 const headerProps = {
   icon: "users",
-  title: "Usuarios",
-  subtitle: "Cadastro de usuarios: incluor, listar, alterar e excluir",
+  title: "Usuários",
+  subtitle: "Cadastro de usuários: Incluir, Listar, Alterar e Excluir",
 };
 
 const baseUrl = "http://localhost:3001/users";
-
 const initialState = {
   user: { name: "", email: "" },
   list: [],
@@ -17,6 +16,12 @@ const initialState = {
 
 export default class UserCrud extends Component {
   state = { ...initialState };
+
+  componentWillMount() {
+    axios(baseUrl).then((resp) => {
+      this.setState({ list: resp.data });
+    });
+  }
 
   clear() {
     this.setState({ user: initialState.user });
@@ -27,13 +32,14 @@ export default class UserCrud extends Component {
     const method = user.id ? "put" : "post";
     const url = user.id ? `${baseUrl}/${user.id}` : baseUrl;
     axios[method](url, user).then((resp) => {
-      const list = this.getUpdateList(resp.data);
+      const list = this.getUpdatedList(resp.data);
       this.setState({ user: initialState.user, list });
     });
   }
-  getUpdateList(user) {
+
+  getUpdatedList(user, add = true) {
     const list = this.state.list.filter((u) => u.id !== user.id);
-    list.unshift(user);
+    if (add) list.unshift(user);
     return list;
   }
 
@@ -94,7 +100,63 @@ export default class UserCrud extends Component {
     );
   }
 
+  load(user) {
+    this.setState({ user });
+  }
+
+  remove(user) {
+    axios.delete(`${baseUrl}/${user.id}`).then((resp) => {
+      const list = this.getUpdatedList(user, false);
+      this.setState({ list });
+    });
+  }
+
+  renderTable() {
+    return (
+      <table className="table mt-4">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>{this.renderRows()}</tbody>
+      </table>
+    );
+  }
+
+  renderRows() {
+    return this.state.list.map((user) => {
+      return (
+        <tr key={user.id}>
+          <td>{user.id}</td>
+          <td>{user.name}</td>
+          <td>{user.email}</td>
+          <td>
+            <button className="btn btn-warning" onClick={() => this.load(user)}>
+              <i className="fa fa-pencil"></i>
+            </button>
+
+            <button
+              className="btn btn-danger ml-2"
+              onClick={() => this.remove(user)}
+            >
+              <i className="fa fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      );
+    });
+  }
+
   render() {
-    return <Main {...headerProps}>{this.renderForm()}</Main>;
+    return (
+      <Main {...headerProps}>
+        {this.renderForm()}
+        {this.renderTable()}
+      </Main>
+    );
   }
 }
